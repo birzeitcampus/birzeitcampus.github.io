@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Birzeit University Campus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      width: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    #controlPanel {
+      position: absolute;
+      top: 120px; /* Adjusted position further down */
+      left: 10px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #controlPanel h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    #controlPanel select {
+      margin-bottom: 10px;
+    }
+    .legend {
+      padding: 6px 8px;
+      font: 12px/14px Arial, Helvetica, sans-serif;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+      line-height: 18px;
+      color: #555;
+      background: rgba(255, 255, 255, 0.9);
+      margin-bottom: 10px;
+    }
+    .legend h4 {
+      margin: 0 0 5px;
+      color: #777;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .legend-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 8px;
+      color: white;
+    }
+    .legend-text {
+      font-size: 12px;
+    }
+    #fullScreenBtn {
+      position: absolute;
+      top: 10px;
+      right: 50px; /* Adjusted position to accommodate layer icon */
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    #layerControlBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+    }
+    #travelModeContainer {
+      position: absolute;
+      top: 90px; /* Adjusted position */
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 10px;
+    }
+    .travelMode {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      padding: 5px;
+    }
+    .travelMode img {
+      width: 32px;
+      height: 32px;
+    }
+    .travelMode span {
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    .travelMode.active {
+      border-bottom: 2px solid blue;
+    }
+    #directions {
+      position: absolute;
+      top: 160px; /* Adjusted position */
+      right: 10px;
+      z-index: 1000;
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      width: 300px;
+      display: none; /* Hide initially */
+    }
+    .direction-step {
+      margin: 5px 0;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .leaflet-control-scale {
+      background: none !important;
+      border: none !important;
+    }
+    .summary {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #logo {
+      position: absolute;
+      top: 10px;
+      left: 40px; /* Adjusted position next to zoom buttons */
+      z-index: 1000;
+      width: 120px; /* Make the logo bigger */
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <img id="logo" src="https://github.com/TareqZhaika1/TareqZhaika1.github.io/blob/main/bzu-footer-logo.png?raw=true" alt="BZU Logo">
+  <div id="controlPanel">
+    <h2>Categories</h2>
+    <div class="legend">
+      <h4>Legend</h4>
+      <div class="legend-item">
+        <div class="legend-icon" style="background-color: pink;"><i class="fas fa-book-open"></i></div>
+        <div class="legend-text">Colleges</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon" style="background-color: yellow;"><i class="fas fa-utensils"></i></div>
+        <div class="legend-text">Cafeterias</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon" style="background-color: lightgreen;"><i class="fas fa-mosque"></i></div>
+        <div class="legend-text">Mosques</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon" style="background-color: red;"><i class="fas fa-building"></i></div>
+        <div class="legend-text">Services</div>
+      </div>
+    </div>
+    <select id="selectDestination">
+      <option value="">Select your Destination</option>
+      <option value="colleges">Colleges</option>
+      <option value="cafes">Cafeterias</option>
+      <option value="mosques">Mosques</option>
+      <option value="services">Services</option>
+    </select>
+    <select id="collegeSelect" style="display: none;">
+      <option value="">Select ID</option>
+    </select>
+  </div>
+  <div id="layerControlBtn"><i class="fas fa-layer-group"></i></div>
+  <div id="fullScreenBtn"><i class="fas fa-expand"></i></div>
+  <div id="travelModeContainer">
+    <div id="walkingMode" class="travelMode" data-mode="walking">
+      <img src="https://img.icons8.com/ios-filled/50/000000/walking.png" alt="Walking">
+      <span>Walking</span>
+    </div>
+    <div id="carMode" class="travelMode" data-mode="car">
+      <img src="https://img.icons8.com/ios-filled/50/000000/car.png" alt="Car">
+      <span>By Car</span>
+    </div>
+  </div>
+  <div id="directions"></div>
+  <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.js"></script>
+  <script src="https://unpkg.com/@mapbox/polyline@1.0.0/src/polyline.js"></script>
+  <script>
+    const mapOptions = {
+      zoomSnap: 0.5,
+      center: [31.960055, 35.182576],
+      zoom: 17.5,
+    };
+    const map = L.map("map", mapOptions);
+
+    var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    var Thunderforest_MobileAtlas = L.tileLayer('https://{s}.tile.thunderforest.com/mobile-atlas/{z}/{x}/{y}.png?apikey=226bbb64a63f4f0bbd8072d23bcd6337', {
+      attribution: '&copy; <a href="http://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 22
+    });
+
+    map.addLayer(Esri_WorldImagery);
+
+    L.control.scale({ position: 'bottomright', metric: true, imperial: false }).addTo(map);
+
+    var collegeMarkers = {};
+    var cafeMarkers = {};
+    var mosqueMarkers = {};
+    var serviceMarkers = [];
+    var collegesData, cafesData, mosquesData, servicesData, uniqueServices;
+
+    // Custom icons for different services
+    var icons = {
+      "مبنى التسجيل": L.divIcon({ html: '<div style="background-color: red; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-building" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "مركز الحاسوب": L.divIcon({ html: '<div style="background-color: blue; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-desktop" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "مكتبة": L.divIcon({ html: '<div style="background-color: orange; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-book" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "العيادة الطبية": L.divIcon({ html: '<div style="background-color: green; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-clinic-medical" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "ATM": L.divIcon({ html: '<div style="background-color: purple; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-money-check-alt" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "بنك فلسطين": L.divIcon({ html: '<div style="background-color: yellow; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-university" style="color: black;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "مطبعة": L.divIcon({ html: '<div style="background-color: brown; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-print" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "عمادة شؤون الطلب": L.divIcon({ html: '<div style="background-color: pink; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-users" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "Parking": L.divIcon({ html: '<div style="background-color: gray; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-parking" style="color: white;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] }),
+      "مبنى الرئاسة": L.divIcon({ html: '<div style="background-color: lightblue; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-user-tie" style="color: black;"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] })
+    };
+
+    // Custom icon for colleges
+    var collegeIcon = L.divIcon({
+      html: '<div style="background-color: pink; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-book-open" style="color: white;"></i></div>',
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -24]
+    });
+
+    // Custom icon for cafes
+    var cafeIcon = L.divIcon({
+      html: '<div style="background-color: yellow; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-utensils" style="color: white;"></i></div>',
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -24]
+    });
+
+    // Custom icon for mosques
+    var mosqueIcon = L.divIcon({
+      html: '<div style="background-color: lightgreen; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-mosque" style="color: white;"></i></div>',
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -24]
+    });
+
+    // Load colleges data
+    $.getJSON("colleges_edit.json", function(Colleges) {
+      collegesData = Colleges;
+      Colleges.features.forEach(function(feature) {
+        var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+        var popupContent = "College: " + feature.properties.college_ID;
+        
+        if (feature.properties.info) {
+          popupContent += "<br>Info: " + feature.properties.info;
+        }
+        
+        var imageMap = {
+          "Alsadik": "11.jpg",
+          "Bamieh": "12.jpg",
+          "Aggad": "14.jpg",
+          "SCI": "15.jpg",
+          "Al.Juraysi": "18.jpg",
+          "A.Shaheen": "2.jpg",
+          "Aweidah": "21.jpg",
+          "Khoury": "4.jpg",
+          "NPH": "7.jpg"
+        };
+
+        var imageUrl = imageMap[feature.properties.college_ID];
+        if (imageUrl) {
+          popupContent += `<br><img src="https://github.com/TareqZhaika1/TareqZhaika1.github.io/blob/main/${imageUrl}?raw=true" alt="${feature.properties.college_ID}" style="width:200px;height:auto;">`;
+        }
+
+        var marker = L.marker(latlng, { icon: collegeIcon }).bindPopup(popupContent);
+        collegeMarkers[feature.properties.college_ID] = marker;
+      });
+    }).fail(function(jqxhr, textStatus, error) {
+      console.error("Error loading colleges_edit.json: ", textStatus, error);
+    });
+
+    // Load cafes data
+    $.getJSON("caf.json", function(Cafes) {
+      cafesData = Cafes;
+      Cafes.features.forEach(function(feature) {
+        var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+        var marker = L.marker(latlng, { icon: cafeIcon }).bindPopup("Cafeteria: " + feature.properties.Cafe_ID);
+        cafeMarkers[feature.properties.Cafe_ID] = marker;
+      });
+    }).fail(function(jqxhr, textStatus, error) {
+      console.error("Error loading caf.json: ", textStatus, error);
+    });
+
+    // Load mosques data
+    $.getJSON("mosques.json", function(Mosques) {
+      mosquesData = Mosques;
+      Mosques.features.forEach(function(feature) {
+        var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+        var marker = L.marker(latlng, { icon: mosqueIcon }).bindPopup("Mosque: " + feature.properties.Mosuqe_loc);
+        mosqueMarkers[feature.properties.Mosuqe_loc] = marker;
+      });
+    }).fail(function(jqxhr, textStatus, error) {
+      console.error("Error loading mosques.json: ", textStatus, error);
+    });
+
+    // Load services data
+    $.getJSON("Services.json", function(Services) {
+      servicesData = Services;
+      uniqueServices = {};
+
+      Services.features.forEach(function(feature) {
+        var service = feature.properties.Services;
+        if (!uniqueServices[service]) {
+          uniqueServices[service] = [];
+        }
+        uniqueServices[service].push(feature);
+      });
+    }).fail(function(jqxhr, textStatus, error) {
+      console.error("Error loading Services.json: ", textStatus, error);
+    });
+
+    var selectedFeature = null;
+    var routingControl = null; // To keep track of the routing control
+    var selectedMarker = null; // To keep track of the selected marker
+    var travelMode = null; // Travel mode is initially null
+    var locationWatchId = null; // To keep track of the location watch
+
+    $('.travelMode').click(function() {
+      $('.travelMode').removeClass('active');
+      $(this).addClass('active');
+      travelMode = $(this).data('mode');
+      if (selectedFeature) {
+        locateUser(true);
+      }
+    });
+
+    $('#selectDestination').change(function() {
+      var selectedCategory = $(this).val();
+      $('#collegeSelect').empty().append(new Option("Select ID", ""));
+      
+      if (selectedCategory === "colleges") {
+        collegesData.features.forEach(function(feature) {
+          $('#collegeSelect').append(new Option(feature.properties.college_ID, feature.properties.college_ID));
+        });
+      } else if (selectedCategory === "cafes") {
+        cafesData.features.forEach(function(feature) {
+          $('#collegeSelect').append(new Option(feature.properties.Cafe_ID, feature.properties.Cafe_ID));
+        });
+      } else if (selectedCategory === "mosques") {
+        mosquesData.features.forEach(function(feature) {
+          $('#collegeSelect').append(new Option(feature.properties.Mosuqe_loc, feature.properties.Mosuqe_loc));
+        });
+      } else if (selectedCategory === "services") {
+        for (var service in uniqueServices) {
+          $('#collegeSelect').append(new Option(service, service));
+        }
+      }
+
+      if (!selectedCategory) {
+        $('#collegeSelect').hide();
+      } else {
+        $('#collegeSelect').show();
+      }
+    });
+
+    $('#collegeSelect').change(function() {
+      var selectedId = $(this).val();
+      if (!selectedId) return;
+
+      var selectedCategory = $('#selectDestination').val();
+
+      // Clear previous marker and routing if any
+      clearMap();
+
+      if (selectedCategory === "colleges") {
+        selectedFeature = collegesData.features.find(function(feature) {
+          return feature.properties.college_ID == selectedId;
+        });
+        selectedMarker = collegeMarkers[selectedId];
+        showMarker(selectedMarker);
+      } else if (selectedCategory === "cafes") {
+        selectedFeature = cafesData.features.find(function(feature) {
+          return feature.properties.Cafe_ID == selectedId;
+        });
+        selectedMarker = cafeMarkers[selectedId];
+        showMarker(selectedMarker);
+      } else if (selectedCategory === "mosques") {
+        selectedFeature = mosquesData.features.find(function(feature) {
+          return feature.properties.Mosuqe_loc == selectedId;
+        });
+        selectedMarker = mosqueMarkers[selectedId];
+        showMarker(selectedMarker);
+      } else if (selectedCategory === "services") {
+        selectedFeature = uniqueServices[selectedId];
+        showServiceMarkers(selectedFeature);
+      }
+
+      // Clear travel mode selection
+      travelMode = null;
+      $('.travelMode').removeClass('active');
+    });
+
+    $('#layerControlBtn').click(function() {
+      var currentLayer = map.hasLayer(Esri_WorldImagery) ? 'esri' : 'thunderforest';
+      if (currentLayer === 'esri') {
+        map.addLayer(Thunderforest_MobileAtlas);
+        map.removeLayer(Esri_WorldImagery);
+      } else {
+        map.addLayer(Esri_WorldImagery);
+        map.removeLayer(Thunderforest_MobileAtlas);
+      }
+    });
+
+    function clearMap() {
+      // Remove all college markers
+      for (var id in collegeMarkers) {
+        if (collegeMarkers.hasOwnProperty(id)) {
+          map.removeLayer(collegeMarkers[id]);
+        }
+      }
+
+      // Remove all cafe markers
+      for (var id in cafeMarkers) {
+        if (cafeMarkers.hasOwnProperty(id)) {
+          map.removeLayer(cafeMarkers[id]);
+        }
+      }
+
+      // Remove all mosque markers
+      for (var id in mosqueMarkers) {
+        if (mosqueMarkers.hasOwnProperty(id)) {
+          map.removeLayer(mosqueMarkers[id]);
+        }
+      }
+
+      // Remove all service markers
+      serviceMarkers.forEach(function(marker) {
+        map.removeLayer(marker);
+      });
+      serviceMarkers = [];
+
+      // Remove the routing control
+      if (routingControl !== null) {
+        routingControl.getPlan().setWaypoints([]);
+        routingControl.remove();
+        routingControl = null;
+      }
+
+      // Clear the directions container
+      document.getElementById('directions').innerHTML = '';
+      document.getElementById('directions').style.display = 'none';
+
+      // Clear location watch
+      if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+      }
+    }
+
+    function showMarker(marker) {
+      if (marker) {
+        marker.addTo(map);
+        map.flyTo(marker.getLatLng(), 18);
+        marker.openPopup();
+
+        // Hide the directions container initially
+        document.getElementById('directions').style.display = 'none';
+      }
+    }
+
+    function showServiceMarkers(features) {
+      var bounds = new L.LatLngBounds();
+      features.forEach(function(feature) {
+        var latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+        var popupContent = `Service: ${feature.properties.Services}`;
+        if (feature.properties.info) {
+          popupContent += `<br>Info: ${feature.properties.info}`;
+        }
+        var marker = L.marker(latlng, { icon: icons[feature.properties.Services] }).bindPopup(popupContent);
+        marker.addTo(map);
+        marker.openPopup();
+        bounds.extend(latlng);
+        serviceMarkers.push(marker);
+      });
+      map.fitBounds(bounds);
+
+      // Hide the directions container initially
+      document.getElementById('directions').style.display = 'none';
+    }
+
+    function locateUser(isNavigationActive) {
+      if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+
+      locationWatchId = navigator.geolocation.watchPosition(
+        function(position) {
+          var myLocation = L.latLng(position.coords.latitude, position.coords.longitude);
+          console.log("User location updated: ", myLocation);
+
+          if (isNavigationActive && selectedFeature && travelMode) {
+            // Find the closest feature point to the user's location
+            var closestFeature;
+            if (Array.isArray(selectedFeature)) {
+              closestFeature = findClosestFeature(myLocation, selectedFeature);
+            } else {
+              closestFeature = selectedFeature;
+            }
+
+            var destination = L.latLng(closestFeature.geometry.coordinates[1], closestFeature.geometry.coordinates[0]);
+
+            // Remove previous routing control if it exists
+            if (routingControl !== null) {
+              routingControl.getPlan().setWaypoints([]);
+              routingControl.remove();
+            }
+
+            // Determine the travel mode
+            var routerOptions = {
+              profile: travelMode === 'walking' ? 'mapbox/walking' : 'mapbox/driving'
+            };
+
+            // Add new routing control with draggable waypoints
+            routingControl = L.Routing.control({
+              waypoints: [
+                L.Routing.waypoint(myLocation, { draggable: false }),
+                L.Routing.waypoint(destination, { draggable: false })
+              ],
+              router: L.Routing.mapbox('pk.eyJ1IjoidGFyZXF6aGFpa2EiLCJhIjoiY2x3cDZ4b2VnMWk0dTJxczFmdXE0Y3MwcCJ9.yWtxunGkYaYZDtvjtAt-ww', routerOptions),
+              createMarker: function(i, waypoint) {
+                if (i === 0) {
+                  return L.marker(waypoint.latLng, { draggable: false, icon: L.icon({ iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.6.0/images/marker-icon.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.6.0/images/marker-shadow.png', shadowSize: [41, 41] }) });
+                }
+              },
+              routeWhileDragging: false,
+              showAlternatives: false,
+              lineOptions: {
+                addWaypoints: false
+              },
+              // Remove the default itinerary
+              itinerary: {
+                containerClassName: 'custom-itinerary',
+                show: false
+              }
+            }).on('routesfound', function(e) {
+              // Update directions whenever routes are found
+              const routes = e.routes;
+              if (routes.length > 0) {
+                updateDirections(routes[0]);
+                console.log("Routes found: ", routes[0]);
+              }
+            }).addTo(map);
+
+            // Hide the default itinerary
+            document.querySelector('.leaflet-routing-container').style.display = 'none';
+
+            // Show the directions container
+            document.getElementById('directions').style.display = 'block';
+
+            // Fit the map to the calculated bounds
+            var bounds = L.latLngBounds([myLocation, destination]);
+            map.fitBounds(bounds);
+          }
+        },
+        function(error) {
+          handleLocationError(error);
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
+    }
+
+    function findClosestFeature(userLocation, featureCollection) {
+      var closestFeature = featureCollection[0];
+      var closestDistance = distance(userLocation, L.latLng(closestFeature.geometry.coordinates[1], closestFeature.geometry.coordinates[0]));
+
+      featureCollection.forEach(function(feature) {
+        var featureLocation = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+        var featureDistance = distance(userLocation, featureLocation);
+
+        if (featureDistance < closestDistance) {
+          closestFeature = feature;
+          closestDistance = featureDistance;
+        }
+      });
+
+      return closestFeature;
+    }
+
+    function distance(latlng1, latlng2) {
+      return latlng1.distanceTo(latlng2);
+    }
+
+    function handleLocationError(e) {
+      let errorMessage;
+      switch(e.code) {
+        case e.PERMISSION_DENIED:
+          errorMessage = "Location access denied. Please enable location services in your browser settings and refresh the page.";
+          break;
+        case e.POSITION_UNAVAILABLE:
+          errorMessage = "Location information is unavailable. Please try again later.";
+          break;
+        case e.TIMEOUT:
+          errorMessage = "The request to get your location timed out. Please try again.";
+          break;
+        case e.UNKNOWN_ERROR:
+        default:
+          errorMessage = "An unknown error occurred while trying to access your location.";
+          break;
+      }
+      alert(errorMessage);
+      console.error("Location Error: ", errorMessage, e);
+    }
+
+    function updateDirections(route) {
+      const directionsContainer = document.getElementById('directions');
+      directionsContainer.innerHTML = ''; // Clear previous directions
+
+      const summary = route.summary;
+      const totalDistance = summary.totalDistance < 1000 ? `${summary.totalDistance.toFixed(0)} m` : `${(summary.totalDistance / 1000).toFixed(2)} km`;
+      const totalMinutes = Math.round(summary.totalTime / 60); // convert to minutes
+      const totalHours = Math.floor(totalMinutes / 60); // calculate hours
+      const remainingMinutes = totalMinutes % 60; // calculate remaining minutes
+      const totalTime = totalHours > 0 ? `${totalHours} hr ${remainingMinutes} min` : `${totalMinutes} min`; // display in hours and minutes if hours > 0
+
+      // Add summary (distance and time)
+      const summaryElement = document.createElement('div');
+      summaryElement.className = 'summary';
+      summaryElement.innerText = `Distance: ${totalDistance}, Time: ${totalTime}`;
+      directionsContainer.appendChild(summaryElement);
+
+      // Show only the next 3 steps
+      const steps = route.instructions.slice(0, 3);
+      steps.forEach((step, i) => {
+        const stepDistance = step.distance < 1000 ? `${step.distance.toFixed(0)} m` : `${(step.distance / 1000).toFixed(2)} km`;
+        const stepElement = document.createElement('div');
+        stepElement.className = 'direction-step';
+        stepElement.innerText = `${i + 1}. ${step.text} (${stepDistance})`;
+        directionsContainer.appendChild(stepElement);
+      });
+    }
+
+    document.getElementById('fullScreenBtn').addEventListener('click', function() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    });
+
+    // Ensure the page is served over HTTPS
+    if (location.protocol !== 'https:') {
+      location.replace(`https:${location.href.substring(location.protocol.length)}`);
+    }
+  </script>
+</body>
+</html>
